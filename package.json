@@ -1,0 +1,19 @@
+{
+  "name": "orcid_task_service",
+  "version": "1.0.0",
+  "description": "RESTful ORCID utilities for WRLC",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ORCID",
+    "REST"
+  ],
+  "author": "Ian Hardy",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.2",
+    "mongoose": "^4.12.1"
+  }
+}

@@ -1,0 +1,5 @@
+# exclude node modules
+node_modules/
+
+# exclude local config settings
+config.js
