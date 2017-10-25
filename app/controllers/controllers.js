@@ -34,3 +34,19 @@ exports.create_researcher = function(req, res) {
 		res.json(researcher);
 	});
 };
+
+exports.update_researcher = function(req, res) {
+	Researcher.findOneAndUpdate({orcid: req.params.orcid}, req.body, {new: true}, function(err, researcher) {
+		if (err)
+			res.send(err);
+		res.json(researcher);
+	});
+};
+
+exports.delete_researcher = function(req, res) {
+	Researcher.remove({orcid: req.params.orcid}, function(err, researcher) {
+		if (err)
+			res.send(err);
+		res.json({message: 'Deleted reseracher identified by orcid: ' + req.params.orcid})
+	});
+};
