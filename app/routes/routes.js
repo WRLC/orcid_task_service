@@ -20,7 +20,9 @@ module.exports = function(app) {
         .post(apiControllers.create_researcher);
 
     router.route('/researchers/:orcid')
-        .get(apiControllers.get_researcher);
+        .get(apiControllers.get_researcher)
+        .put(apiControllers.update_researcher)
+        .delete(apiControllers.delete_researcher);
 
     app.use('/api', router);
 
