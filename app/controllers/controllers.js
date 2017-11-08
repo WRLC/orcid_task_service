@@ -11,7 +11,7 @@ exports.doc_message = function(req, res) {
 exports.get_researcher = function(req, res) {
 	Researcher.find({orcid: req.params.orcid}, function(err, researcher) {
 		if (err)
-			res.send(err);
+			res.status(400).send(err);
 		res.json(researcher);
 	});
 };
@@ -19,7 +19,7 @@ exports.get_researcher = function(req, res) {
 exports.get_researchers = function(req, res) {
 	Researcher.find({}, function(err, researcher) {
 		if (err)
-			res.send(err);
+			res.status(400).send(err);
 		res.json(researcher);
 	});
 };
@@ -30,7 +30,7 @@ exports.create_researcher = function(req, res) {
 
 	new_researcher.save(function(err, researcher) {
 		if (err) 
-			res.send(err);
+			res.status(400).send(err);
 		res.json(researcher);
 	});
 };
@@ -38,7 +38,7 @@ exports.create_researcher = function(req, res) {
 exports.update_researcher = function(req, res) {
 	Researcher.findOneAndUpdate({orcid: req.params.orcid}, req.body, {new: true}, function(err, researcher) {
 		if (err)
-			res.send(err);
+			res.status(400).send(err);
 		res.json(researcher);
 	});
 };
@@ -46,7 +46,7 @@ exports.update_researcher = function(req, res) {
 exports.delete_researcher = function(req, res) {
 	Researcher.remove({orcid: req.params.orcid}, function(err, researcher) {
 		if (err)
-			res.send(err);
+			res.status(400).send(err);
 		res.json({message: 'Deleted reseracher identified by orcid: ' + req.params.orcid})
 	});
 };
