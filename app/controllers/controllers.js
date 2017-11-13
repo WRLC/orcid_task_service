@@ -45,6 +45,10 @@ exports.update_researcher = function(req, res) {
 	});
 };
 
+exports.post_error = function(req, res) {
+        res.status(400).json({message: 'bad request, did you mean put?'});
+}
+
 exports.delete_researcher = function(req, res) {
 	Researcher.remove({orcid: req.params.orcid}, function(err, researcher) {
 		if (err)
