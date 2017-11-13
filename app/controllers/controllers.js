@@ -38,7 +38,7 @@ exports.create_researcher = function(req, res) {
 };
 
 exports.update_researcher = function(req, res) {
-	Researcher.findOneAndUpdate({orcid: req.params.orcid}, req.body, {new: true}, function(err, researcher) {
+	Researcher.findOneAndUpdate({orcid: req.params.orcid}, req.body, {new: true, upsert: true}, function(err, researcher) {
 		if (err)
 			res.status(400).send(err);
 		res.json(researcher);
