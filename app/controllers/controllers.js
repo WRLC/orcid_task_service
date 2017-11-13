@@ -11,7 +11,9 @@ exports.doc_message = function(req, res) {
 exports.get_researcher = function(req, res) {
 	Researcher.find({orcid: req.params.orcid}, function(err, researcher) {
 		if (err)
-			res.status(400).send(err);
+			return res.status(500).send(err);
+		if (researcher.length == 0)
+			return res.status(404).json({message: 'no researcher found with orcid: ' + req.params.orcid});
 		res.json(researcher);
 	});
 };
