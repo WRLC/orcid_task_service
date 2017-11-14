@@ -13,7 +13,7 @@ exports.get_researcher = function(req, res) {
 		if (err)
 			return res.status(500).send(err);
 		if (researcher.length == 0)
-			return res.status(404).json({message: 'no researcher found with orcid: ' + req.params.orcid});
+			return res.status(404).json({message: 'No researcher found with orcid: ' + req.params.orcid});
 		res.json(researcher);
 	});
 };
@@ -46,7 +46,7 @@ exports.update_researcher = function(req, res) {
 };
 
 exports.post_error = function(req, res) {
-        res.status(400).json({message: 'bad request, did you mean put?'});
+        res.status(400).json({message: 'Bad request, did you mean put?'});
 }
 
 exports.delete_researcher = function(req, res) {

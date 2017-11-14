@@ -18,7 +18,8 @@ exports.test_islandora = function(req, res) {
 		}
 	},
 		function(err, res, body) {
-		console.log(err);
+		if(err)
+			console.log(err);
 	});
 
 	request.get(config.islandora.host + config.islandora.testitem, function(island_err, island_res, island_body) {
