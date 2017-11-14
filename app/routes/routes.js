@@ -1,6 +1,7 @@
 // app/routes/routes.js
 module.exports = function(app) {
     var apiControllers = require('../controllers/controllers');
+    var islandoraControllers = require('../controllers/islandora');
 
     var express = require('express');
     var router = express.Router();
@@ -12,6 +13,8 @@ module.exports = function(app) {
         next();
     });
     
+    // researchers api
+
     router.route('/')
     	.get(apiControllers.doc_message);
 
@@ -23,6 +26,11 @@ module.exports = function(app) {
         .get(apiControllers.get_researcher)
         .put(apiControllers.update_researcher)
         .delete(apiControllers.delete_researcher);
+
+    // islandora tasks
+
+    router.route('/islandora/test')
+    	.get(islandoraControllers.test_islandora);
 
     app.use('/api', router);
 
