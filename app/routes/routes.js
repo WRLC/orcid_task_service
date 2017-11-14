@@ -25,6 +25,7 @@ module.exports = function(app) {
     router.route('/researchers/:orcid')
         .get(apiControllers.get_researcher)
         .put(apiControllers.update_researcher)
+        .post(apiControllers.post_error)
         .delete(apiControllers.delete_researcher);
 
     // islandora tasks

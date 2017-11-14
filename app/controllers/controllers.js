@@ -45,10 +45,14 @@ exports.update_researcher = function(req, res) {
 	});
 };
 
+exports.post_error = function(req, res) {
+        res.status(400).json({message: 'bad request, did you mean put?'});
+}
+
 exports.delete_researcher = function(req, res) {
 	Researcher.remove({orcid: req.params.orcid}, function(err, researcher) {
 		if (err)
 			res.status(400).send(err);
-		res.json({message: 'Deleted reseracher identified by orcid: ' + req.params.orcid})
+		res.json({message: 'Deleted researcher identified by orcid: ' + req.params.orcid})
 	});
 };
