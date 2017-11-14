@@ -33,6 +33,9 @@ module.exports = function(app) {
     router.route('/islandora/test')
     	.get(islandoraControllers.test_islandora);
 
+    router.route('/islandora/update/:orcid')
+        .put(islandoraControllers.update_islandora);
+
     app.use('/api', router);
 
 };

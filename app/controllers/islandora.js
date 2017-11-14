@@ -28,3 +28,7 @@ exports.test_islandora = function(req, res) {
 		res.send(island_body);
 	});
 };
+
+exports.update_islandora = function(req, res) {
+	res.json({message: 'update function goes here'});
+};
