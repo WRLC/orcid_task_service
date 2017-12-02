@@ -33,8 +33,8 @@ module.exports = function(app) {
     router.route('/islandora/test')
     	.get(islandoraControllers.test_islandora);
 
-    router.route('/islandora/update/:orcid')
-        .put(islandoraControllers.update_islandora);
+    router.route('/islandora/:orcid')
+        .put(islandoraControllers.islandora_create_or_update);
 
     app.use('/api', router);
 

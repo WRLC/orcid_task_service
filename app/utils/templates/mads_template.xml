@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<mads xmlns="http://www.loc.gov/mads/v2" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mads="http://www.loc.gov/mads/v2">
+  <authority>
+    <name type="personal">
+      <namePart type="given"></namePart>
+      <namePart type="family"></namePart>
+      <namePart type="date"></namePart>
+    </name>
+    <titleInfo>
+      <title></title>
+    </titleInfo>
+  </authority>
+  <variant>
+    <name>
+      <namePart type="given"></namePart>
+      <namePart type="family"></namePart>
+    </name>
+  </variant>
+  <affiliation>
+    <organization></organization>
+    <position></position>
+    <email></email>
+	<email></email>
+    <phone></phone>
+    <dateValid point="start"></dateValid>
+    <dateValid point="end"></dateValid>
+  </affiliation>
+  <fieldOfActivity></fieldOfActivity>
+  <identifier type="u1"></identifier>
+  <note type="status"></note>
+  <note type="history"></note>
+  <note></note>
+  <note type="address"></note>
+  <url></url>
+</mads>
