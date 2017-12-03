@@ -73,7 +73,7 @@ def create_mads(session, response_dict, pid):
         'dsid': 'MADS',
         'controlGroup': 'M',
     }
-    files = {'mads.xml': open('templates/mads_template.xml', 'rb')}
+    files = {'mads.xml': open('app/utils/templates/mads_template.xml', 'rb')}
     res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
     record_response(response_dict, res)
     return({
@@ -86,7 +86,7 @@ def add_tn(session, response_dict, pid):
         'dsid': 'TN',
         'controlGroup': 'M',
     }
-    files = {'mads.xml': open('templates/tn.jpg', 'rb')}
+    files = {'mads.xml': open('app/utils/templates/tn.jpg', 'rb')}
     res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
     record_response(response_dict, res)
     return({
