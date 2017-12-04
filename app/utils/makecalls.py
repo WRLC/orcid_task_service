@@ -2,6 +2,7 @@ import requests
 import json
 import sys
 from api_settings import *
+from bs4 import BeautifulSoup
 
 email = sys.argv[1]
 given_name = sys.argv[2]
@@ -69,11 +70,19 @@ def build_rel(session, response_dict, pid, payload):
     })
 
 def create_mads(session, response_dict, pid):
+    # modify MADs template
+    with open('app/utils/templates/mads_template.xml', 'rb') as fh:
+        mads = fh.read()
+    mads_soup = BeautifulSoup(mads, "html.parser")
+    mads_soup.email.append(email)
+    mads_soup.find(type="given").append(given_name)
+    mads_soup.find(type="family").append(family_name)
+    # set up payload and post
     data = {
         'dsid': 'MADS',
         'controlGroup': 'M',
     }
-    files = {'mads.xml': open('app/utils/templates/mads_template.xml', 'rb')}
+    files = {'mads.xml': mads_soup.prettify()}
     res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
     record_response(response_dict, res)
     return({
@@ -113,16 +122,17 @@ def main():
     r = {'calls' : []}
     s = requests.session()
     islandora_auth(s)
-    pid = get_researcher(s, email)
-    if pid == False:
-        pid = create_researcher(s, r)
-    else:
-        pass
-    build_rel(s, r, pid, PERSON_REL)
-    build_rel(s, r, pid, MEMBER_OF_REL)
+    # pid = get_researcher(s, email)
+    # if pid == False:
+    #     pid = create_researcher(s, r)
+    # else:
+    #     pass
+    # build_rel(s, r, pid, PERSON_REL)
+    # build_rel(s, r, pid, MEMBER_OF_REL)
+    pid = 'auislandora:1538'
     create_mads(s, r, pid)
-    add_tn(s, r, pid)
-    describe_mads(s, r, pid)
+    # add_tn(s, r, pid)
+    # describe_mads(s, r, pid)
     print(r)
 
 if __name__ == '__main__':
