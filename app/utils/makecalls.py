@@ -122,17 +122,16 @@ def main():
     r = {'calls' : []}
     s = requests.session()
     islandora_auth(s)
-    # pid = get_researcher(s, email)
-    # if pid == False:
-    #     pid = create_researcher(s, r)
-    # else:
-    #     pass
-    # build_rel(s, r, pid, PERSON_REL)
-    # build_rel(s, r, pid, MEMBER_OF_REL)
-    pid = 'auislandora:1538'
+    pid = get_researcher(s, email)
+    if pid == False:
+        pid = create_researcher(s, r)
+    else:
+        pass
+    build_rel(s, r, pid, PERSON_REL)
+    build_rel(s, r, pid, MEMBER_OF_REL)
     create_mads(s, r, pid)
-    # add_tn(s, r, pid)
-    # describe_mads(s, r, pid)
+    add_tn(s, r, pid)
+    describe_mads(s, r, pid)
     print(r)
 
 if __name__ == '__main__':
