@@ -39,7 +39,7 @@ def islandora_auth(session):
 
 def get_researcher(session, email):
     res = session.get(API_ENDPOINT + 'solr/MADS_email_ms:' + email)
-    response_data = json.loads(res.content)
+    response_data = json.loads(res.content.decode('utf-8'))
     if response_data['response']['numFound'] == 1:
         return(response_data['response']['docs'][0]['PID'])
     elif response_data['response']['numFound'] == 0:
@@ -56,7 +56,7 @@ def create_researcher(session, response_dict):
     res = session.post(API_ENDPOINT + 'object', data=payload)
     if res.status_code == 201:
         record_response(response_dict, res)
-        return(json.loads(res.content)['pid'])
+        return(json.loads(res.content.decode('utf-8'))['pid'])
     else:
         failure()
 
