@@ -22,7 +22,7 @@ MEMBER_OF_REL = {
     "type":"uri"
 }
 
-API_ENDPOINT = 'http://auislandora-dev.wrlc.org/islandora/rest/v1/'
+API_ENDPOINT = 'https://auislandora-dev.wrlc.org/islandora/rest/v1/'
 
 def islandora_auth(session):
     payload = {
@@ -31,7 +31,7 @@ def islandora_auth(session):
         'op': 'Log in',
         'pass': islandora_password
     }
-    loginurl = 'http://auislandora-dev.wrlc.org/user/login'
+    loginurl = 'https://auislandora-dev.wrlc.org/user/login'
     login = session.post(loginurl, data=payload)
     if login.status_code == 200:
         return(True)
@@ -115,7 +115,7 @@ def record_response(response_dict, res):
     response_dict['calls'].append({res.url : res.status_code})
 
 def failure():
-    print('{"message" : "islandora api calls failed"}')
+    print('{"status_code" : 500, "message" : "islandora api calls failed"}')
     sys.exit(1)
 
 def main():
