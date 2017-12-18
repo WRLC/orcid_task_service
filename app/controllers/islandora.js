@@ -33,7 +33,7 @@ exports.islandora_create_or_update = function(req, res) {
 		req.body.authority.name.given,
 		req.body.authority.name.family,]);
 	py.stdout.on('data', function(data){
-		res.send(data);
+		res.status(JSON.parse(data).computed_status).send(data);
 	});
 
 

@@ -132,7 +132,13 @@ def main():
     create_mads(s, r, pid)
     add_tn(s, r, pid)
     describe_mads(s, r, pid)
-    print(r)
+    for call in r['calls']:
+        if list(call.values())[0] > 299:
+            r['computed_status'] = 500
+            break
+        else:
+            r['computed_status'] = 200
+    print(json.dumps(r))
 
 if __name__ == '__main__':
     main()
