@@ -9,10 +9,6 @@ var researcherSchema = new Schema({
 	required: true,
 	unique: true
     },
-    created_date: {
-        type: Date,
-	default: Date.now
-    },
     access_token: {
         type: String,
     },
@@ -34,6 +30,6 @@ var researcherSchema = new Schema({
     name: {
         type: String,
     },
-});
+}, {timestamps : {createdAt : 'created_date', updatedAt: 'updated_date'} });
 
 module.exports = mongoose.model('Researcher', researcherSchema);
