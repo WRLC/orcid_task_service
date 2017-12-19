@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 email = sys.argv[1]
 given_name = sys.argv[2]
 family_name = sys.argv[3]
+orcid = sys.argv[4]
+orcid_uri = "https://orcid.org/" + orcid
 
 PERSON_REL = {
     "uri":"info:fedora/fedora-system:def/model#",
@@ -77,6 +79,7 @@ def create_mads(session, response_dict, pid):
     mads_soup.email.append(email)
     mads_soup.find(type="given").append(given_name)
     mads_soup.find(type="family").append(family_name)
+    mads_soup.find(type="u1").append(orcid_uri)
     # set up payload and post
     data = {
         'dsid': 'MADS',
@@ -89,6 +92,25 @@ def create_mads(session, response_dict, pid):
         'endpoint' : res.url,
         'status_code' : res.status_code
     })
+
+def update_mads(session, response_dict, pid):
+    get_res = session.get(API_ENDPOINT + 'object/{}/datastream/MADS'.format(pid))
+    mads_soup = BeautifulSoup(get_res.content, "html.parser")
+    # update orcid
+    mads_soup.find(type="u1").string = orcid_uri
+    files = {'mads.xml': mads_soup.prettify()}
+    data = {
+        'dsid': 'MADS',
+        'controlGroup': 'M',
+    }
+
+    ## delete existing mads
+    delete_res = session.delete(API_ENDPOINT + 'object/{}/datastream/MADS'.format(pid))
+
+    # post new mads
+    post_res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
+    record_response(response_dict, post_res)
+    return(post_res.status_code)
 
 def add_tn(session, response_dict, pid):
     data = {
@@ -119,22 +141,28 @@ def failure():
     sys.exit(1)
 
 def main():
-    r = {'calls' : []}
+    r = {'calls' : [],
+        'computed_status' : 500,
+    }
     s = requests.session()
     islandora_auth(s)
+    # look up reseracher by email
     pid = get_researcher(s, email)
+    r['resource_uri'] = API_ENDPOINT + '/islandora/object/' + pid
+    # if the researcher does not exist, build from scratch
     if pid == False:
         pid = create_researcher(s, r)
+        build_rel(s, r, pid, PERSON_REL)
+        build_rel(s, r, pid, MEMBER_OF_REL)
+        create_mads(s, r, pid)
+        add_tn(s, r, pid)
+        describe_mads(s, r, pid)
+    # if the reseracher does exist, update the researcher
     else:
-        pass
-    build_rel(s, r, pid, PERSON_REL)
-    build_rel(s, r, pid, MEMBER_OF_REL)
-    create_mads(s, r, pid)
-    add_tn(s, r, pid)
-    describe_mads(s, r, pid)
+        update_mads(s, r, pid)
+
     for call in r['calls']:
         if list(call.values())[0] > 299:
-            r['computed_status'] = 500
             break
         else:
             r['computed_status'] = 200

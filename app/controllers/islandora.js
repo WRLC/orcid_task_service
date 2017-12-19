@@ -31,7 +31,8 @@ exports.islandora_create_or_update = function(req, res) {
 	var py = spawn('python3', ['app/utils/makecalls.py',
 		req.body.identifier.netid,
 		req.body.authority.name.given,
-		req.body.authority.name.family,]);
+		req.body.authority.name.family,
+		req.body.identifier.u1]);
 	py.stdout.on('data', function(data){
 		res.status(JSON.parse(data).computed_status).send(data);
 	});
