@@ -165,7 +165,7 @@ def main():
         if list(call.values())[0] > 299:
             break
         else:
-            r['computed_status'] = 200
+            r['computed_status'] = 201
     print(json.dumps(r))
 
 if __name__ == '__main__':
