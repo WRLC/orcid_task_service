@@ -160,14 +160,13 @@ def main():
     else:
         update_mads(s, r, pid)
     
-    r['resource_uri'] = API_ENDPOINT + '/islandora/object/' + pid
+    r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
     for call in r['calls']:
         if list(call.values())[0] > 299:
             break
         else:
             r['computed_status'] = 201
     print(json.dumps(r))
-    #print(pid)
 
 if __name__ == '__main__':
     main()
