@@ -22,7 +22,7 @@ function islandora_auth() {
 		function(err, res, body) {
 		if(err)
 			console.log(err);
-		console.log(res);
+		console.log(res.body);
 	});
 }
 
@@ -41,18 +41,14 @@ exports.islandora_create_or_update = function(req, res) {
 };
 
 exports.test_islandora = function(req, res) {
-	islandora_auth();
+	var py = spawn('python3', ['app/utils/debug.py',
+		req.body.identifier.netid,
+		req.body.authority.name.given,
+		req.body.authority.name.family,
+		req.body.identifier.u1]);
+	py.stdout.on('data', function(data){
+		res.send(data)
+	})
 
-	request.get({
-				url: config.islandora.host + config.islandora.testitem,
-				json: true
-			},
-		function(island_err, island_res, island_body) {
-		if (island_err)
-			res.status(400).send(island_err);
-	}).then(function (response) {
-        //console.log(JSON.parse(res).pid);
-        console.log(response);
-        res.send(response.pid);
-    });
+
 };

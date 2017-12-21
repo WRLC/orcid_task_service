@@ -148,7 +148,6 @@ def main():
     islandora_auth(s)
     # look up reseracher by email
     pid = get_researcher(s, email)
-    r['resource_uri'] = API_ENDPOINT + '/islandora/object/' + pid
     # if the researcher does not exist, build from scratch
     if pid == False:
         pid = create_researcher(s, r)
@@ -160,13 +159,15 @@ def main():
     # if the reseracher does exist, update the researcher
     else:
         update_mads(s, r, pid)
-
+    
+    r['resource_uri'] = API_ENDPOINT + '/islandora/object/' + pid
     for call in r['calls']:
         if list(call.values())[0] > 299:
             break
         else:
             r['computed_status'] = 201
     print(json.dumps(r))
+    #print(pid)
 
 if __name__ == '__main__':
     main()
