@@ -62,7 +62,10 @@ def build_researcher_dict():
     r_dict['title'] = extract_attr(req_json['affiliation'], 'position')
     r_dict['organization'] = extract_attr(req_json['affiliation'], 'organization')
     r_dict['url'] = extract_attr(req_json, 'url')
-    r_dict['history'] = extract_attr(req_json['note'], 'history')
+    if 'history' in req_json:
+        r_dict['history'] = extract_attr(req_json['note'], 'history')
+    else:
+        r_dict['history'] = False
     r_dict['position'] = extract_attr(req_json['affiliation'], 'position')
 
     return(r_dict)
