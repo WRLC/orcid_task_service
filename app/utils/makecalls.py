@@ -152,7 +152,7 @@ def create_mads(session, response_dict, pid, researcher_dict):
         'status_code' : res.status_code
     })
 
-def update_mads(session, response_dict, pid):
+def update_mads(session, response_dict, pid, researcher_dict):
     '''
     Get existing MADS, modify locally, delte and update.
     Should be replaced with PUT request to modify when updating
@@ -161,7 +161,7 @@ def update_mads(session, response_dict, pid):
     get_res = session.get(API_ENDPOINT + 'object/{}/datastream/MADS'.format(pid))
     mads_soup = BeautifulSoup(get_res.content, "html.parser")
     # update orcid
-    mads_soup.find(type="u1").string = orcid_uri
+    mads_soup.find(type="u1").string = 'https://orcid.org/' + researcher_dict['orcid_uri']
     files = {'mads.xml': mads_soup.prettify()}
     data = {
         'dsid': 'MADS',
@@ -243,7 +243,7 @@ def main():
        describe_mads(s, r, pid)
    # if the reseracher does exist, update the researcher
    else:
-       update_mads(s, r, pid)
+       update_mads(s, r, pid, researcher_attrs)
    
    r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
    for call in r['calls']:
