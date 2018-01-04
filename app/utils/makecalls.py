@@ -59,7 +59,7 @@ def build_researcher_dict():
     r_dict['given_name'] = extract_attr(req_json['authority']['name'], 'given')
     r_dict['family_name'] = extract_attr(req_json['authority']['name'], 'family')
     r_dict['orcid'] = extract_attr(req_json['identifier'], 'u1')
-    r_dict['title'] = extract_attr(req_json['affiliation'], 'position')
+    r_dict['title'] = extract_attr(req_json['authority']['titleInfo'], 'title')
     r_dict['organization'] = extract_attr(req_json['affiliation'], 'organization')
     r_dict['url'] = extract_attr(req_json, 'url')
     if 'history' in req_json:
@@ -161,7 +161,7 @@ def update_mads(session, response_dict, pid, researcher_dict):
     get_res = session.get(API_ENDPOINT + 'object/{}/datastream/MADS'.format(pid))
     mads_soup = BeautifulSoup(get_res.content, "html.parser")
     # update orcid
-    mads_soup.find(type="u1").string = 'https://orcid.org/' + researcher_dict['orcid_uri']
+    mads_soup.find(type="u1").string = 'https://orcid.org/' + researcher_dict['orcid']
     files = {'mads.xml': mads_soup.prettify()}
     data = {
         'dsid': 'MADS',
