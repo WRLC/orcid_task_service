@@ -31,7 +31,10 @@ module.exports = function(app) {
     // islandora tasks
 
     router.route('/islandora/test')
-    	.get(islandoraControllers.test_islandora);
+    	.put(islandoraControllers.test_islandora);
+
+    router.route('/islandora/:orcid')
+        .put(islandoraControllers.islandora_create_or_update);
 
     app.use('/api', router);
 

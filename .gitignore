@@ -3,3 +3,7 @@ node_modules/
 
 # exclude local config settings
 config.js
+api_settings.py
+
+# cruft
+__pycache__
