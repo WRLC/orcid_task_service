@@ -30,8 +30,11 @@ function islandora_auth() {
 exports.islandora_create_or_update = function(req, res) {
 	var py = spawn('python3', ['app/utils/makecalls.py',
 		JSON.stringify(req.body)]);
-	py.stdout.on('data', function(data){
+	py.stdout.on('data', function(data) {
 		res.status(JSON.parse(data).computed_status).send(data);
+	});
+	py.stderr.on('data', function(data) {
+		res.status(500).send(data)
 	});
 
 

@@ -217,14 +217,6 @@ def failure():
     print('{"status_code" : 500, "message" : "islandora api calls failed"}')
     sys.exit(1)
 
-
-# def main():
-#     # for testing
-#     message = {}
-#     message['computed_status'] = 200
-#     message['testing'] = build_researcher_dict()
-#     print(json.dumps(message))
-
 def main():
    r = {'calls' : [],
        'computed_status' : 500,
