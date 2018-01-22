@@ -68,6 +68,8 @@ def build_researcher_dict():
     else:
         r_dict['history'] = False
     r_dict['position'] = extract_attr(req_json['affiliation'], 'position')
+    if 'citations' in req_json:
+        r_dict['citations'] = extract_attr(req_json, 'citations')
 
     return(r_dict)
 
@@ -177,6 +179,98 @@ def update_mads(session, response_dict, pid, researcher_dict):
     record_response(response_dict, post_res)
     return(post_res.status_code)
 
+def create_mods(session, response_dict, researcher_dict, pid):
+    '''
+    Create MODS datastream for work from ORCID.
+    '''
+
+    # make xml soup from orcid response
+    orcid_xml = requests.get(researcher_dict['citations'])
+    orcid_soup = BeautifulSoup(orcid_xml.content, "xml")
+    orcid_works = orcid_soup.find_all('work:work')
+
+
+    # list of dictionaries of work attributes
+    works_attrs = []
+    # list of completed Mods
+    works_mods =[]
+
+    for work in orcid_works:
+        work_dict = {}
+        # get orcid for work
+        try:
+            work_dict['orcid_uri'] = work.find('uri').text.strip()
+        except AttributeError:
+            work_dict['orcid_uri'] = None
+        # get author name for work
+        try:
+            work_dict['author_name'] = work.find('source-name').text.strip()
+        except AttributeError:
+            work_dict['author_name'] = None
+        # get title for work
+        try:
+            work_dict['title'] = work.find('title').text.strip()
+        except AttributeError:
+            work_dict['title'] = None
+        # get date for work
+        try:
+            work_dict['date'] = work.find('publication-date').text.strip()
+        except AttributeError:
+            work_dict['date'] = None
+        # get external url if avialble
+        try:
+            work_dict['external_uri'] = work.find('external-id-url').text.strip()
+        except AttributeError:
+            work_dict['external_uri'] = None
+
+        # get source publication for work
+        # should I check for work type, handle differently if it's a 
+        # book chapter / monograph / serial / somethign else?
+
+        # add work to list
+        works_attrs.append(work_dict)
+
+    # open the template do this part for each work found
+    for work in works_attrs:
+        with open('app/utils/templates/mods_template.xml', 'rb') as fh:
+            mods = fh.read()
+            mods_soup = BeautifulSoup(mods, "xml")
+            # orcid (must exist)
+            mods_soup.find('identifier').append(work['orcid_uri'])
+            # title
+            if work['title']:
+                mods_soup.find('title').append(work['title'])
+            # author
+            if work['author_name']:
+                mods_soup.find('namePart').append(work['author_name'])
+            # date
+            if work['date']:
+                mods_soup.find('dateIssued').append(work['date'])
+            # external uri
+            if work['external_uri']:
+                mods_soup.find('location').append(work['external_uri'])
+    
+            # add completed mods to list to be posted
+            works_mods.append(mods_soup.prettify())
+            fh.close()
+
+    # return something
+    return(works_mods)
+
+def post_mods(session, response_dict, pid, mods_list):
+    response_dict['post_result'] = mods_list
+    # set up payload and post
+
+    for work in mods_list:
+        data = {
+            'dsid': 'MODS',
+            'controlGroup': 'M',
+        }
+        files = {'mods.xml': work}
+        res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
+
+
+
 def add_tn(session, response_dict, pid):
     '''
     Add default thumbnail image.
@@ -217,34 +311,43 @@ def failure():
     print('{"status_code" : 500, "message" : "islandora api calls failed"}')
     sys.exit(1)
 
-def main():
-   r = {'calls' : [],
-       'computed_status' : 500,
-   }
-   researcher_attrs = build_researcher_dict()
-   s = requests.session()
-   islandora_auth(s)
-   # look up reseracher by email
-   pid = get_researcher(s, researcher_attrs['email'])
-   # if the researcher does not exist, build from scratch
-   if pid == False:
-       pid = create_researcher(s, r, researcher_attrs)
-       build_rel(s, r, pid, PERSON_REL)
-       build_rel(s, r, pid, MEMBER_OF_REL)
-       create_mads(s, r, pid, researcher_attrs)
-       add_tn(s, r, pid)
-       describe_mads(s, r, pid)
-   # if the reseracher does exist, update the researcher
-   else:
-       update_mads(s, r, pid, researcher_attrs)
+# def main():
+#    r = {'calls' : [],
+#        'computed_status' : 500,
+#    }
+#    researcher_attrs = build_researcher_dict()
+#    s = requests.session()
+#    islandora_auth(s)
+#    # look up reseracher by email
+#    pid = get_researcher(s, researcher_attrs['email'])
+#    # if the researcher does not exist, build from scratch
+#    if pid == False:
+#        pid = create_researcher(s, r, researcher_attrs)
+#        build_rel(s, r, pid, PERSON_REL)
+#        build_rel(s, r, pid, MEMBER_OF_REL)
+#        create_mads(s, r, pid, researcher_attrs)
+#        add_tn(s, r, pid)
+#        describe_mads(s, r, pid)
+#    # if the reseracher does exist, update the researcher
+#    else:
+#        update_mads(s, r, pid, researcher_attrs)
    
-   r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
-   for call in r['calls']:
-       if list(call.values())[0] > 299:
-           break
-       else:
-           r['computed_status'] = 201
-   print(json.dumps(r))
+#    r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
+#    for call in r['calls']:
+#        if list(call.values())[0] > 299:
+#            break
+#        else:
+#            r['computed_status'] = 201
+#    print(json.dumps(r))
+def main():
+    s = requests.session()
+    islandora_auth(s)
+    response = {'computed_status': 201}
+    researcher_attrs = build_researcher_dict()
+    response['citations'] = researcher_attrs['citations']
+    mods = create_mods(1,2,researcher_attrs,4)
+    post_mods(s, response, 'auislandora:1571', mods)
+    print(json.dumps(response))
 
 if __name__ == '__main__':
     main()
