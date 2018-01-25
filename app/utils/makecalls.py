@@ -22,6 +22,13 @@ MEMBER_OF_REL = {
     "type":"uri"
 }
 
+WORK_REL = {
+    "uri":"info:fedora/fedora-system:def/model#",
+    "predicate":"hasModel",
+    "object":"ir:citationCModel",
+    "type":"uri"
+}
+
 API_ENDPOINT = 'https://auislandora-dev.wrlc.org/islandora/rest/v1/'
 
 def islandora_auth(session):
@@ -86,13 +93,13 @@ def get_researcher(session, email):
     else:
         failure()
 
-def create_researcher(session, response_dict, researcher_dict):
+def create_object(session, response_dict, label):
     '''
-    Create researcher datastream in islandora and return PID.
+    Create researcher new object.
     '''
     payload = {
                 "namespace" :"auislandora",
-                "label" : researcher_dict['given_name'] + ' ' + researcher_dict['family_name'],
+                "label" : label,
                 "owner" : "admin"
             }
     res = session.post(API_ENDPOINT + 'object', data=payload)
@@ -179,29 +186,27 @@ def update_mads(session, response_dict, pid, researcher_dict):
     record_response(response_dict, post_res)
     return(post_res.status_code)
 
-def create_mods(session, response_dict, researcher_dict, pid):
+def create_mods(response_dict, researcher_dict):
     '''
     Create MODS datastream for work from ORCID.
     '''
 
     # make xml soup from orcid response
-    orcid_xml = requests.get(researcher_dict['citations'])
-    orcid_soup = BeautifulSoup(orcid_xml.content, "xml")
+    orcid_response = requests.get(researcher_dict['citations'])
+    orcid_soup = BeautifulSoup(orcid_response.content, "xml")
     orcid_works = orcid_soup.find_all('work:work')
 
-
     # list of dictionaries of work attributes
-    works_attrs = []
+    works = []
     # list of completed Mods
-    works_mods =[]
 
     for work in orcid_works:
         work_dict = {}
         # get orcid for work
         try:
             work_dict['orcid_uri'] = work.find('uri').text.strip()
-        except AttributeError:
-            work_dict['orcid_uri'] = None
+        except AttributeError as er:
+            print(er)
         # get author name for work
         try:
             work_dict['author_name'] = work.find('source-name').text.strip()
@@ -228,15 +233,15 @@ def create_mods(session, response_dict, researcher_dict, pid):
         # book chapter / monograph / serial / somethign else?
 
         # add work to list
-        works_attrs.append(work_dict)
+        works.append(work_dict)
 
     # open the template do this part for each work found
-    for work in works_attrs:
+    for work in works:
         with open('app/utils/templates/mods_template.xml', 'rb') as fh:
             mods = fh.read()
             mods_soup = BeautifulSoup(mods, "xml")
             # orcid (must exist)
-            mods_soup.find('identifier').append(work['orcid_uri'])
+            mods_soup.find('displayForm').append(work['orcid_uri'])
             # title
             if work['title']:
                 mods_soup.find('title').append(work['title'])
@@ -251,23 +256,23 @@ def create_mods(session, response_dict, researcher_dict, pid):
                 mods_soup.find('location').append(work['external_uri'])
     
             # add completed mods to list to be posted
-            works_mods.append(mods_soup.prettify())
+            work['mods'] = (mods_soup.prettify())
             fh.close()
 
     # return something
-    return(works_mods)
+    return(works)
 
-def post_mods(session, response_dict, pid, mods_list):
-    response_dict['post_result'] = mods_list
+
+def post_mods(session, response_dict, pid, mods):
+    response_dict['post_result'] = []
     # set up payload and post
-
-    for work in mods_list:
-        data = {
-            'dsid': 'MODS',
-            'controlGroup': 'M',
-        }
-        files = {'mods.xml': work}
-        res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
+    data = {
+        'dsid': 'MODS',
+        'controlGroup': 'M',
+    }
+    files = {'mods.xml': mods}
+    res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
+    response_dict['post_result'].append(res.status_code)
 
 
 
@@ -322,7 +327,8 @@ def failure():
 #    pid = get_researcher(s, researcher_attrs['email'])
 #    # if the researcher does not exist, build from scratch
 #    if pid == False:
-#        pid = create_researcher(s, r, researcher_attrs)
+#        researcher_label = researcher_attrs['given_name'] + ' ' + researcher_attrs['family_name']
+#        pid = create_object(s, r, researcher_label)
 #        build_rel(s, r, pid, PERSON_REL)
 #        build_rel(s, r, pid, MEMBER_OF_REL)
 #        create_mads(s, r, pid, researcher_attrs)
@@ -340,13 +346,34 @@ def failure():
 #            r['computed_status'] = 201
 #    print(json.dumps(r))
 def main():
+    # make a session
     s = requests.session()
     islandora_auth(s)
     response = {'computed_status': 201}
     researcher_attrs = build_researcher_dict()
     response['citations'] = researcher_attrs['citations']
-    mods = create_mods(1,2,researcher_attrs,4)
-    post_mods(s, response, 'auislandora:1571', mods)
+    response['calls'] = []
+    response['new_pids'] = []
+    response['test'] = []
+
+
+    
+    works_list = create_mods(response, researcher_attrs)
+    # create an object for each citation
+    for work in works_list:
+        work_pid = create_object(s, response, work['title'])
+        response['new_pids'].append(work_pid)
+        build_rel(s, response, work_pid, WORK_REL)
+        post_mods(s, response, work_pid, work['mods'])
+        response['test'].append(work)
+
+
+
+    # LEFT OFF HERE
+    #
+    #create_object(s, response, LABEL)
+    
+    #post_mods(s, response, 'auislandora:1571', mods)
     print(json.dumps(response))
 
 if __name__ == '__main__':

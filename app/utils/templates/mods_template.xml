@@ -4,6 +4,7 @@
   </titleInfo>
   <name type="personal">
     <namePart></namePart>
+    <displayForm></displayForm>
   </name>
   <originInfo>
     <dateIssued></dateIssued>
@@ -11,5 +12,5 @@
   <location>
     <url></url>
   </location>
-  <identifier type="uri"></identifier>
+  <identifier type="u1"></identifier>
 </mods>
