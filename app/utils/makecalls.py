@@ -316,56 +316,74 @@ def failure():
     print('{"status_code" : 500, "message" : "islandora api calls failed"}')
     sys.exit(1)
 
-# def main():
-#    r = {'calls' : [],
-#        'computed_status' : 500,
-#    }
-#    researcher_attrs = build_researcher_dict()
-#    s = requests.session()
-#    islandora_auth(s)
-#    # look up reseracher by email
-#    pid = get_researcher(s, researcher_attrs['email'])
-#    # if the researcher does not exist, build from scratch
-#    if pid == False:
-#        researcher_label = researcher_attrs['given_name'] + ' ' + researcher_attrs['family_name']
-#        pid = create_object(s, r, researcher_label)
-#        build_rel(s, r, pid, PERSON_REL)
-#        build_rel(s, r, pid, MEMBER_OF_REL)
-#        create_mads(s, r, pid, researcher_attrs)
-#        add_tn(s, r, pid)
-#        describe_mads(s, r, pid)
-#    # if the reseracher does exist, update the researcher
-#    else:
-#        update_mads(s, r, pid, researcher_attrs)
-   
-#    r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
-#    for call in r['calls']:
-#        if list(call.values())[0] > 299:
-#            break
-#        else:
-#            r['computed_status'] = 201
-#    print(json.dumps(r))
 def main():
-    # make a session
+    r = {'calls' : [],
+        'computed_status' : 500,
+    }
+    researcher_attrs = build_researcher_dict()
     s = requests.session()
     islandora_auth(s)
-    response = {'computed_status': 201}
-    researcher_attrs = build_researcher_dict()
-    response['citations'] = researcher_attrs['citations']
-    response['calls'] = []
-    response['new_pids'] = []
-    response['test'] = []
+    # look up reseracher by email
+    pid = get_researcher(s, researcher_attrs['email'])
+    # if the researcher does not exist, build from scratch
+    if pid == False:
+        researcher_label = researcher_attrs['given_name'] + ' ' + researcher_attrs['family_name']
+        pid = create_object(s, r, researcher_label)
+        build_rel(s, r, pid, PERSON_REL)
+        build_rel(s, r, pid, MEMBER_OF_REL)
+        create_mads(s, r, pid, researcher_attrs)
+        add_tn(s, r, pid)
+        describe_mads(s, r, pid)
+        
+        # since this is a new account, we'll grab all citation
+        # from the orcid API
+
+        # collect information from orcid api and build mods files
+        works_list = create_mods(r, researcher_attrs)
+        
+        # We'll send pids created in the response
+        r['citations_created'] = []
+
+        #create object, rels-ext, mods for each citation
+        for work in works_list:
+            work_pid = create_object(s, r, work['title'])
+            build_rel(s, r, work_pid, WORK_REL)
+            post_mods(s, r, work_pid, work['mods'])
+            r['citations_created'].append(work_pid)
+
+
+   # if the reseracher does exists, update the researcher
+    else:
+        update_mads(s, r, pid, researcher_attrs)
+   
+    r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
+    for call in r['calls']:
+        if list(call.values())[0] > 299:
+           break
+        else:
+           r['computed_status'] = 201
+    print(json.dumps(r))
+# def main():
+#     # make a session
+#     s = requests.session()
+#     islandora_auth(s)
+#     response = {'computed_status': 201}
+#     researcher_attrs = build_researcher_dict()
+#     response['citations'] = researcher_attrs['citations']
+#     response['calls'] = []
+#     response['new_pids'] = []
+#     response['test'] = []
 
 
     
-    works_list = create_mods(response, researcher_attrs)
-    # create an object for each citation
-    for work in works_list:
-        work_pid = create_object(s, response, work['title'])
-        response['new_pids'].append(work_pid)
-        build_rel(s, response, work_pid, WORK_REL)
-        post_mods(s, response, work_pid, work['mods'])
-        response['test'].append(work)
+#     works_list = create_mods(response, researcher_attrs)
+#     # create an object for each citation
+#     for work in works_list:
+#         work_pid = create_object(s, response, work['title'])
+#         response['new_pids'].append(work_pid)
+#         build_rel(s, response, work_pid, WORK_REL)
+#         post_mods(s, response, work_pid, work['mods'])
+#         response['test'].append(work)
 
 
 
