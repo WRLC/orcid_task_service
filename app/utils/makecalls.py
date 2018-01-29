@@ -134,7 +134,7 @@ def create_mads(session, response_dict, pid, researcher_dict):
     # must have orcid, names, email
     mads_soup.find(type="given").append(researcher_dict['given_name'])
     mads_soup.find(type="family").append(researcher_dict['family_name'])
-    mads_soup.find(type="u1").append('https://orcid.org/' + researcher_dict['orcid'])
+    mads_soup.find(type="u1").append('http://orcid.org/' + researcher_dict['orcid'])
 
     # optional values would be nicer as loop but mads isn't uniform enough
     if researcher_dict['url']:
@@ -171,7 +171,7 @@ def update_mads(session, response_dict, pid, researcher_dict):
     get_res = session.get(API_ENDPOINT + 'object/{}/datastream/MADS'.format(pid))
     mads_soup = BeautifulSoup(get_res.content, "html.parser")
     # update orcid
-    mads_soup.find(type="u1").string = 'https://orcid.org/' + researcher_dict['orcid']
+    mads_soup.find(type="u1").string = 'http://orcid.org/' + researcher_dict['orcid']
     files = {'mads.xml': mads_soup.prettify()}
     data = {
         'dsid': 'MADS',
