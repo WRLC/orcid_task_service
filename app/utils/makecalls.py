@@ -1,5 +1,6 @@
 import requests
 import json
+import re
 import sys
 from api_settings import *
 from bs4 import BeautifulSoup
@@ -30,6 +31,8 @@ WORK_REL = {
 }
 
 API_ENDPOINT = 'https://auislandora-dev.wrlc.org/islandora/rest/v1/'
+
+ORCID_REGEX = re.compile('[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}')
 
 def islandora_auth(session):
     '''
@@ -80,16 +83,22 @@ def build_researcher_dict():
 
     return(r_dict)
 
-def get_researcher(session, email):
+def get_researcher(session, researcher_dict):
     '''
     Check if researcher exists in islandora. Match on email.
     '''
-    res = session.get(API_ENDPOINT + 'solr/MADS_email_ms:' + email)
+    res = session.get(API_ENDPOINT + 'solr/MADS_email_ms:' + researcher_dict['email'])
     response_data = json.loads(res.content.decode('utf-8'))
     if response_data['response']['numFound'] == 1:
         return(response_data['response']['docs'][0]['PID'])
     elif response_data['response']['numFound'] == 0:
-        return(False)
+        # if email isn't found, check if orcid is already there
+        orcid_search_request = session.get(API_ENDPOINT + 'MADS_u1_ms:*' + researcher_dict['orcid'])
+        orcid_search_data = response_data = json.loads(orcid_search_request.content.decode('utf-8'))
+        if orcid_search_data['response']['numFound'] == 1:
+            return(orcid_search_data['response']['docs'][0]['PID'])
+        else:
+            return(False)
     else:
         failure()
 
@@ -170,8 +179,14 @@ def update_mads(session, response_dict, pid, researcher_dict):
     '''
     get_res = session.get(API_ENDPOINT + 'object/{}/datastream/MADS'.format(pid))
     mads_soup = BeautifulSoup(get_res.content, "html.parser")
+
+    # store the orginal identifer
+    original_u1 = mads_soup.find(type="u1").string
+    # store the new identifier
+    new_u1 = 'http://orcid.org/' + researcher_dict['orcid']
+
     # update orcid
-    mads_soup.find(type="u1").string = 'http://orcid.org/' + researcher_dict['orcid']
+    mads_soup.find(type="u1").string = new_u1
     files = {'mads.xml': mads_soup.prettify()}
     data = {
         'dsid': 'MADS',
@@ -183,6 +198,11 @@ def update_mads(session, response_dict, pid, researcher_dict):
 
     # post new mads
     post_res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
+
+    # if there are existing citatoins update the linking field
+    # on those citations at the same time as we update the profile
+    mods_update_results = update_mods(session, original_u1, new_u1)
+
     record_response(response_dict, post_res)
     return(post_res.status_code)
 
@@ -262,6 +282,48 @@ def create_mods(response_dict, researcher_dict):
     # return something
     return(works)
 
+def update_mods(session, original_id, new_id):
+    '''
+    Update MODS datastream dislplayForm field. returns a list
+    of updated records.
+    '''
+    # clean input, islandora api can't handle scheme in search
+    # we'll assume an email has an @
+    if '@' in original_id:
+        query = original_id
+    elif 'orcid' in original_id:
+        query = '*' + ORCID_REGEX.search(original_id).group()
+
+    search_response = session.get(API_ENDPOINT + 'solr/mods_name_personal_author_displayForm_ms:' + query)
+    search_results = json.loads(search_response.content)
+
+    # get pids, and update associated mods
+    mods_pids = []
+    for doc in search_results['response']['docs']:
+        mods_pid = doc['PID']
+        mods_get_res = session.get(API_ENDPOINT + 'object/{}/datastream/MODS'.format(mods_pid))
+        mods_soup = BeautifulSoup(mods_get_res.content, "xml")
+        mods_soup.find('displayForm').string = new_id
+        
+        # set up post request
+        files = {'mods.xml': mods_soup.prettify()}
+        data = {
+            'dsid': 'MODS',
+            'controlGroup': 'M',
+        }
+
+        # delete the existing mods
+        mods_delete_res = session.delete(API_ENDPOINT + 'object/{}/datastream/MODS'.format(mods_pid))
+
+        # post new mads
+        mods_post_res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(mods_pid), data=data, files=files)
+
+        if mods_post_res.status_code == 201:
+            mods_pids.append('updated: ' + mods_pid)
+        else:
+            mods_pids.append('failed to update: ' + mods_pid)
+
+    return(mods_pids)
 
 def post_mods(session, response_dict, pid, mods):
     response_dict['post_result'] = []
@@ -273,8 +335,6 @@ def post_mods(session, response_dict, pid, mods):
     files = {'mods.xml': mods}
     res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
     response_dict['post_result'].append(res.status_code)
-
-
 
 def add_tn(session, response_dict, pid):
     '''
@@ -324,7 +384,7 @@ def main():
     s = requests.session()
     islandora_auth(s)
     # look up reseracher by email
-    pid = get_researcher(s, researcher_attrs['email'])
+    pid = get_researcher(s, researcher_attrs)
     # if the researcher does not exist, build from scratch
     if pid == False:
         researcher_label = researcher_attrs['given_name'] + ' ' + researcher_attrs['family_name']
@@ -363,36 +423,6 @@ def main():
         else:
            r['computed_status'] = 201
     print(json.dumps(r))
-# def main():
-#     # make a session
-#     s = requests.session()
-#     islandora_auth(s)
-#     response = {'computed_status': 201}
-#     researcher_attrs = build_researcher_dict()
-#     response['citations'] = researcher_attrs['citations']
-#     response['calls'] = []
-#     response['new_pids'] = []
-#     response['test'] = []
-
-
-    
-#     works_list = create_mods(response, researcher_attrs)
-#     # create an object for each citation
-#     for work in works_list:
-#         work_pid = create_object(s, response, work['title'])
-#         response['new_pids'].append(work_pid)
-#         build_rel(s, response, work_pid, WORK_REL)
-#         post_mods(s, response, work_pid, work['mods'])
-#         response['test'].append(work)
-
-
-
-    # LEFT OFF HERE
-    #
-    #create_object(s, response, LABEL)
-    
-    #post_mods(s, response, 'auislandora:1571', mods)
-    print(json.dumps(response))
 
 if __name__ == '__main__':
     main()
