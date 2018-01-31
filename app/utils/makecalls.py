@@ -222,6 +222,8 @@ def create_mods(response_dict, researcher_dict):
 
     for work in orcid_works:
         work_dict = {}
+        # get put code for work
+        work_dict['put_code'] = work.attrs['put-code']
         # get orcid for work
         try:
             work_dict['orcid_uri'] = work.find('uri').text.strip()
@@ -262,6 +264,8 @@ def create_mods(response_dict, researcher_dict):
             mods_soup = BeautifulSoup(mods, "xml")
             # orcid (must exist)
             mods_soup.find('displayForm').append(work['orcid_uri'])
+            # put code (must exist)
+            mods_soup.find('identifier').append(work['put_code'])
             # title
             if work['title']:
                 mods_soup.find('title').append(work['title'])
