@@ -9,7 +9,7 @@ module.exports = function(app) {
     // middleware TODO, more meaningful logging
     // and error handling
     router.use(function(req, res, next) {
-        console.log(req.method + ' ' + req.url);
+        console.log(req.method + ' - ' + req.url + ' - ' + JSON.stringify(req.body));
         next();
     });
     
