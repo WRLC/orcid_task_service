@@ -93,7 +93,7 @@ def get_researcher(session, researcher_dict):
         return(response_data['response']['docs'][0]['PID'])
     elif response_data['response']['numFound'] == 0:
         # if email isn't found, check if orcid is already there
-        orcid_search_request = session.get(API_ENDPOINT + 'MADS_u1_ms:*' + researcher_dict['orcid'])
+        orcid_search_request = session.get(API_ENDPOINT + 'solr/MADS_u1_ms:*' + researcher_dict['orcid'])
         orcid_search_data = json.loads(orcid_search_request.content.decode('utf-8'))
         if orcid_search_data['response']['numFound'] == 1:
             return(orcid_search_data['response']['docs'][0]['PID'])
