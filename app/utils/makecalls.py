@@ -299,7 +299,7 @@ def update_mods(session, original_id, new_id):
         query = '*' + ORCID_REGEX.search(original_id).group()
 
     search_response = session.get(API_ENDPOINT + 'solr/mods_name_personal_author_displayForm_ms:' + query)
-    search_results = json.loads(search_response.content)
+    search_results = search_response.json()
 
     # get pids, and update associated mods
     mods_pids = []
