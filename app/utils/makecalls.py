@@ -239,11 +239,21 @@ def create_mods(response_dict, researcher_dict):
             work_dict['date'] = work.find('publication-date').text.strip()
         except AttributeError:
             work_dict['date'] = None
-        # get external url if avialble
+        # get external url if exists
         try:
             work_dict['external_uri'] = work.find('external-id-url').text.strip()
         except AttributeError:
             work_dict['external_uri'] = None
+        # get external url relationship
+        try:
+            work_dict['external_uri_relationship'] = work.find('external-id-relationship').text.strip()
+        except AttributeError:
+            work_dict['external_uri_relationship'] = None
+        # get citation if exists
+        try:
+            work_dict['citation'] = work.find('citation-value').text.strip()
+        except AttributeError:
+            work_dict['citation'] = None
 
         # get source publication for work
         # should I check for work type, handle differently if it's a 
@@ -274,8 +284,15 @@ def create_mods(response_dict, researcher_dict):
                 mods_soup.find('dateIssued').append(work['date'])
             # external uri
             if work['external_uri']:
-                mods_soup.find('location').append(work['external_uri'])
-    
+                mods_soup.location.url.append(work['external_uri'])
+                if work['external_uri_relationship']:
+                    mods_soup.location.url['note'] = work['external_uri_relationship']
+            # citation
+            if work['citation']:
+                citation_tag = mods_soup.new_tag("mods:note", type="citation/reference")
+                citation_tag.append(work['citation'])
+                mods_soup.mods.append(citation_tag)
+
             # add completed mods to list to be posted
             work['mods'] = (mods_soup.prettify())
             fh.close()
