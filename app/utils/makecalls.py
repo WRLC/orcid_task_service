@@ -266,9 +266,9 @@ def create_mods(response_dict, researcher_dict):
                 mods_soup.find('title').append(work['title'])
             # author name from researcher dict
             if researcher_dict['given_name']:
-		mods_soup.find(type="given").append(researcher_dict['given_name'])
+                mods_soup.find(type="given").append(researcher_dict['given_name'])
             if researcher_dict['family_name']:
-		mods_soup.find(type="family").append(researcher_dict['family_name'])
+                mods_soup.find(type="family").append(researcher_dict['family_name'])
             # date
             if work['date']:
                 mods_soup.find('dateIssued').append(work['date'])
