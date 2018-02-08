@@ -229,11 +229,6 @@ def create_mods(response_dict, researcher_dict):
             work_dict['orcid_uri'] = work.find('uri').text.strip()
         except AttributeError as er:
             print(er)
-        # get author name for work
-        try:
-            work_dict['author_name'] = work.find('source-name').text.strip()
-        except AttributeError:
-            work_dict['author_name'] = None
         # get title for work
         try:
             work_dict['title'] = work.find('title').text.strip()
@@ -269,9 +264,11 @@ def create_mods(response_dict, researcher_dict):
             # title
             if work['title']:
                 mods_soup.find('title').append(work['title'])
-            # author
-            if work['author_name']:
-                mods_soup.find('namePart').append(work['author_name'])
+            # author name from researcher dict
+            if researcher_dict['given_name']:
+		mods_soup.find(type="given").append(researcher_dict['given_name'])
+            if researcher_dict['family_name']:
+		mods_soup.find(type="family").append(researcher_dict['family_name'])
             # date
             if work['date']:
                 mods_soup.find('dateIssued').append(work['date'])
