@@ -90,18 +90,26 @@ def get_researcher(session, researcher_dict):
     '''
     Check if researcher exists in islandora. Match on email.
     '''
-    res = session.get(API_ENDPOINT + 'solr/MADS_email_ms:' + researcher_dict['email'])
+    result = {
+        "pid" : False,
+        "id_type" : None
+    }
+    res = session.get(API_ENDPOINT + 'solr/MADS_u1_ms:' + researcher_dict['email'])
     response_data = json.loads(res.content.decode('utf-8'))
     if response_data['response']['numFound'] == 1:
-        return(response_data['response']['docs'][0]['PID'])
+        result['pid'] = response_data['response']['docs'][0]['PID']
+        result['id_type'] = "email"
+        return(result)
     elif response_data['response']['numFound'] == 0:
         # if email isn't found, check if orcid is already there
         orcid_search_request = session.get(API_ENDPOINT + 'solr/MADS_u1_ms:*' + researcher_dict['orcid'])
         orcid_search_data = json.loads(orcid_search_request.content.decode('utf-8'))
         if orcid_search_data['response']['numFound'] == 1:
-            return(orcid_search_data['response']['docs'][0]['PID'])
+            result['pid'] = orcid_search_data['response']['docs'][0]['PID']
+            result['id_type'] = "orcid"
+            return(result)
         else:
-            return(False)
+            return(result)
     else:
         failure()
 
@@ -337,12 +345,14 @@ def failure():
 def main():
     r = {'calls' : [],
         'computed_status' : 500,
+        'result' : None
     }
     researcher_attrs = build_researcher_dict()
     s = requests.session()
     islandora_auth(s)
     # look up reseracher by email
-    pid = get_researcher(s, researcher_attrs)
+    researcher_search = get_researcher(s, researcher_attrs)
+    pid = researcher_search['pid']
     # if the researcher does not exist, build from scratch
     if pid == False:
         researcher_label = researcher_attrs['given_name'] + ' ' + researcher_attrs['family_name']
@@ -365,7 +375,7 @@ def main():
         #create object, rels-ext, mods for each citation
         for work in works_list:
             work_pid = create_object(s, r, work['title'])
-            build_rel(s, r, work_pid, WORK_REL)
+            build_rel(s, r, work_pid, WORK_REL) 
             if work['mods']:
                 post_mods(s, r, work_pid, work['mods'])
                 r['citations_created'].append(work_pid)
@@ -374,8 +384,11 @@ def main():
                     .format(work['orcid_url']))
 
    # if the reseracher does exists, update the researcher
-    else:
+    elif researcher_search['id_type'] == "email":
         update_mads(s, r, pid, researcher_attrs)
+        r['result'] = "updated"
+    else:
+        r['result'] = "pass"
    
     r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
     for call in r['calls']:
