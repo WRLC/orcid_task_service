@@ -1,5 +1,6 @@
 import requests
 import json
+import lxml
 import re
 import sys
 from api_settings import *
@@ -31,6 +32,8 @@ WORK_REL = {
 }
 
 API_ENDPOINT = 'https://auislandora-dev.wrlc.org/islandora/rest/v1/'
+
+ORCID_WORK_ENDPOINT = 'https://pub.orcid.org/v2.0/{}/work/{}'
 
 ORCID_REGEX = re.compile('[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}')
 
@@ -210,94 +213,31 @@ def create_mods(response_dict, researcher_dict):
     '''
     Create MODS datastream for work from ORCID.
     '''
+    # set up xsl
+    xsl = lxml.etree.parse('app/utils/templates/orcid_to_mods.xsl')
+    transform = lxml.etree.XSLT(xsl)
 
-    # make xml soup from orcid response
-    orcid_response = requests.get(researcher_dict['citations'])
-    orcid_soup = BeautifulSoup(orcid_response.content, "xml")
-    orcid_works = orcid_soup.find_all('work:work')
-
-    # list of dictionaries of work attributes
+    # get citiations from orcid
+    citation_ids = researcher_dict['citations'].split('/')[-1].split(',')
+    
+    # colllect work title and mods
     works = []
-    # list of completed Mods
 
-    for work in orcid_works:
-        work_dict = {}
-        # get put code for work
-        work_dict['put_code'] = work.attrs['put-code']
-        # get orcid for work
+    for id in citation_ids:
+        r = requests.get(ORCID_WORK_ENDPOINT.format(researcher_dict['orcid'], id))
+        orcid_xml = lxml.etree.fromstring(r.content)
+        work = {}
         try:
-            work_dict['orcid_uri'] = work.find('uri').text.strip()
-        except AttributeError as er:
-            print(er)
-        # get title for work
-        try:
-            work_dict['title'] = work.find('title').text.strip()
-        except AttributeError:
-            work_dict['title'] = None
-        # get date for work
-        try:
-            work_dict['date'] = work.find('publication-date').text.strip()
-        except AttributeError:
-            work_dict['date'] = None
-        # get external url if exists
-        try:
-            work_dict['external_uri'] = work.find('external-id-url').text.strip()
-        except AttributeError:
-            work_dict['external_uri'] = None
-        # get external url relationship
-        try:
-            work_dict['external_uri_relationship'] = work.find('external-id-relationship').text.strip()
-        except AttributeError:
-            work_dict['external_uri_relationship'] = None
-        # get citation if exists
-        try:
-            work_dict['citation'] = work.find('citation-value').text.strip()
-        except AttributeError:
-            work_dict['citation'] = None
+            mods_xml = transform(orcid_xml)
+            work['title'] = mods_xml.find('.//{http://www.loc.gov/mods/v3}title').text
+            work['mods'] = lxml.etree.tostring(mods_xml, pretty_print=True)
+            works.append(work)
+        except:
+            work['title'] = False
+            work['mods'] = False
+            work['orcid_url'] = r.url
+            works.append(work)
 
-        # get source publication for work
-        # should I check for work type, handle differently if it's a 
-        # book chapter / monograph / serial / somethign else?
-
-        # add work to list
-        works.append(work_dict)
-
-    # open the template do this part for each work found
-    for work in works:
-        with open('app/utils/templates/mods_template.xml', 'rb') as fh:
-            mods = fh.read()
-            mods_soup = BeautifulSoup(mods, "xml")
-            # orcid (must exist)
-            mods_soup.find('displayForm').append(work['orcid_uri'])
-            # put code (must exist)
-            mods_soup.find('identifier').append(work['put_code'])
-            # title
-            if work['title']:
-                mods_soup.find('title').append(work['title'])
-            # author name from researcher dict
-            if researcher_dict['given_name']:
-                mods_soup.find(type="given").append(researcher_dict['given_name'])
-            if researcher_dict['family_name']:
-                mods_soup.find(type="family").append(researcher_dict['family_name'])
-            # date
-            if work['date']:
-                mods_soup.find('dateIssued').append(work['date'])
-            # external uri
-            if work['external_uri']:
-                mods_soup.location.url.append(work['external_uri'])
-                if work['external_uri_relationship']:
-                    mods_soup.location.url['note'] = work['external_uri_relationship']
-            # citation
-            if work['citation']:
-                citation_tag = mods_soup.new_tag("mods:note", type="citation/reference")
-                citation_tag.append(work['citation'])
-                mods_soup.mods.append(citation_tag)
-
-            # add completed mods to list to be posted
-            work['mods'] = (mods_soup.prettify())
-            fh.close()
-
-    # return something
     return(works)
 
 def update_mods(session, original_id, new_id):
@@ -426,9 +366,12 @@ def main():
         for work in works_list:
             work_pid = create_object(s, r, work['title'])
             build_rel(s, r, work_pid, WORK_REL)
-            post_mods(s, r, work_pid, work['mods'])
-            r['citations_created'].append(work_pid)
-
+            if work['mods']:
+                post_mods(s, r, work_pid, work['mods'])
+                r['citations_created'].append(work_pid)
+            else:
+                r['citations_created'].append('failed to parse {}'
+                    .format(work['orcid_url']))
 
    # if the reseracher does exists, update the researcher
     else:
