@@ -387,10 +387,10 @@ def main():
     elif researcher_search['id_type'] == "email":
         update_mads(s, r, pid, researcher_attrs)
         r['result'] = "updated"
-	r['computed_status'] = 201
+        r['computed_status'] = 201
     else:
         r['result'] = "pass"
-	r['computed_status'] = 201
+        r['computed_status'] = 201
    
     r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
     for call in r['calls']:
