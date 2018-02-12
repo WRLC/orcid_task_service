@@ -1,5 +1,6 @@
 import requests
 import json
+import lxml
 import re
 import sys
 from api_settings import *
@@ -31,6 +32,8 @@ WORK_REL = {
 }
 
 API_ENDPOINT = 'https://auislandora-dev.wrlc.org/islandora/rest/v1/'
+
+ORCID_WORK_ENDPOINT = 'https://pub.orcid.org/v2.0/{}/work/{}'
 
 ORCID_REGEX = re.compile('[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}')
 
@@ -143,27 +146,25 @@ def create_mads(session, response_dict, pid, researcher_dict):
     '''
     
     # modify MADs template
-    with open('app/utils/templates/mads_template.xml', 'rb') as fh:
-        mads = fh.read()
-    mads_soup = BeautifulSoup(mads, "html.parser")
-    mads_soup.email.append(researcher_dict['email'])
+    mads_tree = lxml.etree.parse('app/utils/templates/mads_template.xml')
+    mads_tree.find('.//{http://www.loc.gov/mads/v2}email').text = researcher_dict['email']
     
     # must have orcid, names, email
-    mads_soup.find(type="given").append(researcher_dict['given_name'])
-    mads_soup.find(type="family").append(researcher_dict['family_name'])
-    mads_soup.find(type="u1").append('http://orcid.org/' + researcher_dict['orcid'])
+    mads_tree.find(".//{http://www.loc.gov/mads/v2}namePart[@type='given']").text = researcher_dict['given_name']
+    mads_tree.find(".//{http://www.loc.gov/mads/v2}namePart[@type='family']").text = researcher_dict['family_name']
+    mads_tree.find(".//{http://www.loc.gov/mads/v2}identifier[@type='u1']").text = researcher_dict['orcid']
 
-    # optional values would be nicer as loop but mads isn't uniform enough
+    # optional values 
     if researcher_dict['url']:
-        mads_soup.find('url').append(researcher_dict['url'][0])
+        mads_tree.find('.//{http://www.loc.gov/mads/v2}url').text = researcher_dict['url'][0]
     if researcher_dict['history']:
-        mads_soup.find(type="history").append(researcher_dict['history'])
+        mads_tree.find(".//{http://www.loc.gov/mads/v2}note[@type='history']").text = researcher_dict['history']
     if researcher_dict['title']:
-        mads_soup.find('title').append(researcher_dict['title'])
+        mads_tree.find('.//{http://www.loc.gov/mads/v2}title').text = researcher_dict['title']
     if researcher_dict['organization']:
-        mads_soup.find('organization').append(researcher_dict['organization'])
+        mads_tree.find('.//{http://www.loc.gov/mads/v2}organization').text = researcher_dict['organization']
     if researcher_dict['position']:
-        mads_soup.find('position').append(researcher_dict['position'])
+        mads_tree.find('.//{http://www.loc.gov/mads/v2}position').text = researcher_dict['position']
     
     # set up payload and post
 
@@ -171,7 +172,7 @@ def create_mads(session, response_dict, pid, researcher_dict):
         'dsid': 'MADS',
         'controlGroup': 'M',
     }
-    files = {'mads.xml': mads_soup.prettify()}
+    files = {'mads.xml': lxml.etree.tostring(mads_tree)}
     res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
     record_response(response_dict, res)
     return({
@@ -186,16 +187,16 @@ def update_mads(session, response_dict, pid, researcher_dict):
     is available in the islandora API.
     '''
     get_res = session.get(API_ENDPOINT + 'object/{}/datastream/MADS'.format(pid))
-    mads_soup = BeautifulSoup(get_res.content, "html.parser")
+    mads_tree = lxml.etree.fromstring(get_res.content)
 
     # store the orginal identifer
-    original_u1 = mads_soup.find(type="u1").string
+    original_u1 = mads_tree.find(".//{http://www.loc.gov/mads/v2}identifier[@type='u1']").text
     # store the new identifier
     new_u1 = 'http://orcid.org/' + researcher_dict['orcid']
 
     # update orcid
-    mads_soup.find(type="u1").string = new_u1
-    files = {'mads.xml': mads_soup.prettify()}
+    mads_tree.find(".//{http://www.loc.gov/mads/v2}identifier[@type='u1']").text = new_u1
+    files = {'mads.xml': lxml.etree.tostring(mads_tree)}
     data = {
         'dsid': 'MADS',
         'controlGroup': 'M',
@@ -218,94 +219,31 @@ def create_mods(response_dict, researcher_dict):
     '''
     Create MODS datastream for work from ORCID.
     '''
+    # set up xsl
+    xsl = lxml.etree.parse('app/utils/templates/orcid_to_mods.xsl')
+    transform = lxml.etree.XSLT(xsl)
 
-    # make xml soup from orcid response
-    orcid_response = requests.get(researcher_dict['citations'])
-    orcid_soup = BeautifulSoup(orcid_response.content, "xml")
-    orcid_works = orcid_soup.find_all('work:work')
-
-    # list of dictionaries of work attributes
+    # get citiations from orcid
+    citation_ids = researcher_dict['citations'].split('/')[-1].split(',')
+    
+    # colllect work title and mods
     works = []
-    # list of completed Mods
 
-    for work in orcid_works:
-        work_dict = {}
-        # get put code for work
-        work_dict['put_code'] = work.attrs['put-code']
-        # get orcid for work
+    for id in citation_ids:
+        r = requests.get(ORCID_WORK_ENDPOINT.format(researcher_dict['orcid'], id))
+        orcid_xml = lxml.etree.fromstring(r.content)
+        work = {}
         try:
-            work_dict['orcid_uri'] = work.find('uri').text.strip()
-        except AttributeError as er:
-            print(er)
-        # get title for work
-        try:
-            work_dict['title'] = work.find('title').text.strip()
-        except AttributeError:
-            work_dict['title'] = None
-        # get date for work
-        try:
-            work_dict['date'] = work.find('publication-date').text.strip()
-        except AttributeError:
-            work_dict['date'] = None
-        # get external url if exists
-        try:
-            work_dict['external_uri'] = work.find('external-id-url').text.strip()
-        except AttributeError:
-            work_dict['external_uri'] = None
-        # get external url relationship
-        try:
-            work_dict['external_uri_relationship'] = work.find('external-id-relationship').text.strip()
-        except AttributeError:
-            work_dict['external_uri_relationship'] = None
-        # get citation if exists
-        try:
-            work_dict['citation'] = work.find('citation-value').text.strip()
-        except AttributeError:
-            work_dict['citation'] = None
+            mods_xml = transform(orcid_xml)
+            work['title'] = mods_xml.find('.//{http://www.loc.gov/mods/v3}title').text
+            work['mods'] = lxml.etree.tostring(mods_xml, pretty_print=True)
+            works.append(work)
+        except:
+            work['title'] = False
+            work['mods'] = False
+            work['orcid_url'] = r.url
+            works.append(work)
 
-        # get source publication for work
-        # should I check for work type, handle differently if it's a 
-        # book chapter / monograph / serial / somethign else?
-
-        # add work to list
-        works.append(work_dict)
-
-    # open the template do this part for each work found
-    for work in works:
-        with open('app/utils/templates/mods_template.xml', 'rb') as fh:
-            mods = fh.read()
-            mods_soup = BeautifulSoup(mods, "xml")
-            # orcid (must exist)
-            mods_soup.find('displayForm').append(work['orcid_uri'])
-            # put code (must exist)
-            mods_soup.find('identifier').append(work['put_code'])
-            # title
-            if work['title']:
-                mods_soup.find('title').append(work['title'])
-            # author name from researcher dict
-            if researcher_dict['given_name']:
-                mods_soup.find(type="given").append(researcher_dict['given_name'])
-            if researcher_dict['family_name']:
-                mods_soup.find(type="family").append(researcher_dict['family_name'])
-            # date
-            if work['date']:
-                mods_soup.find('dateIssued').append(work['date'])
-            # external uri
-            if work['external_uri']:
-                mods_soup.location.url.append(work['external_uri'])
-                if work['external_uri_relationship']:
-                    mods_soup.location.url['note'] = work['external_uri_relationship']
-            # citation
-            if work['citation']:
-                citation_tag = mods_soup.new_tag("mods:note", type="citation/reference")
-                citation_tag.append(work['citation'])
-                mods_soup.mods.append(citation_tag)
-
-            # add completed mods to list to be posted
-            work['mods'] = (mods_soup.prettify())
-            fh.close()
-
-    # return something
     return(works)
 
 def update_mods(session, original_id, new_id):
@@ -435,19 +373,22 @@ def main():
         #create object, rels-ext, mods for each citation
         for work in works_list:
             work_pid = create_object(s, r, work['title'])
-            build_rel(s, r, work_pid, WORK_REL)
-            post_mods(s, r, work_pid, work['mods'])
-            r['citations_created'].append(work_pid)
-
-        r['result'] = "created"
-
+            build_rel(s, r, work_pid, WORK_REL) 
+            if work['mods']:
+                post_mods(s, r, work_pid, work['mods'])
+                r['citations_created'].append(work_pid)
+            else:
+                r['citations_created'].append('failed to parse {}'
+                    .format(work['orcid_url']))
 
    # if the reseracher does exists, update the researcher
     elif researcher_search['id_type'] == "email":
         update_mads(s, r, pid, researcher_attrs)
         r['result'] = "updated"
+        r['computed_status'] = 201
     else:
         r['result'] = "pass"
+        r['computed_status'] = 201
    
     r['resource_uri'] = 'https://auislandora-dev.wrlc.org/islandora/object/' + pid
     for call in r['calls']:
