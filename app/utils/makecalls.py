@@ -52,7 +52,7 @@ def islandora_auth(session):
     if login.status_code == 200:
         return(True)
     else:
-        failure()
+        failure("failed to log into islandora")
 
 def extract_attr(req_dict, key):
     '''
@@ -68,21 +68,40 @@ def build_researcher_dict():
     Build dictionary of possible mads attrs from request body.
     '''
     r_dict = {}
-    r_dict['email'] = extract_attr(req_json['identifier'], 'netid')
-    r_dict['given_name'] = extract_attr(req_json['authority']['name'], 'given')
-    r_dict['family_name'] = extract_attr(req_json['authority']['name'], 'family')
-    r_dict['orcid'] = extract_attr(req_json['identifier'], 'u1')
-    r_dict['title'] = extract_attr(req_json['authority']['titleInfo'], 'title')
-    r_dict['organization'] = extract_attr(req_json['affiliation'], 'organization')
-    r_dict['url'] = extract_attr(req_json, 'url')
-    if 'note' in req_json:
-        if 'history' in req_json['note']:
-            r_dict['history'] = extract_attr(req_json['note'], 'history')
-    else:
+    # required fields
+    try:
+        r_dict['email'] = extract_attr(req_json['identifier'], 'netid')
+        r_dict['given_name'] = extract_attr(req_json['authority']['name'], 'given')
+        r_dict['family_name'] = extract_attr(req_json['authority']['name'], 'family')
+        r_dict['orcid'] = extract_attr(req_json['identifier'], 'u1')
+    except:
+        failure("identifier.netid, identifier.u1, authority.name given," 
+                "and authority.name family are required")
+    # optional fields
+    try:
+        r_dict['title'] = extract_attr(req_json['authority']['titleInfo'], 'title')
+    except KeyError:
+        r_dict['title'] = False
+    try:
+        r_dict['organization'] = extract_attr(req_json['affiliation'], 'organization')
+    except KeyError:
+        r_dict['organization'] = False
+    try:
+        r_dict['url'] = extract_attr(req_json, 'url')
+    except KeyError:
+        r_dict['url'] = False
+    try:
+        r_dict['history'] = extract_attr(req_json['note'], 'history')
+    except KeyError:
         r_dict['history'] = False
-    r_dict['position'] = extract_attr(req_json['affiliation'], 'position')
-    if 'citations' in req_json:
+    try:    
+        r_dict['position'] = extract_attr(req_json['affiliation'], 'position')
+    except KeyError:
+        r_dict['position'] = False
+    try:
         r_dict['citations'] = extract_attr(req_json, 'citations')
+    except KeyError:
+        r_dict['citations'] = False
 
     return(r_dict)
 
@@ -111,7 +130,7 @@ def get_researcher(session, researcher_dict):
         else:
             return(result)
     else:
-        failure()
+        failure("Failed to assign PID")
 
 def create_object(session, response_dict, label):
     '''
@@ -127,7 +146,7 @@ def create_object(session, response_dict, label):
         record_response(response_dict, res)
         return(json.loads(res.content.decode('utf-8'))['pid'])
     else:
-        failure()
+        failure("Failed to create researcher object")
 
 def build_rel(session, response_dict, pid, payload):
     '''
@@ -152,7 +171,7 @@ def create_mads(session, response_dict, pid, researcher_dict):
     # must have orcid, names, email
     mads_tree.find(".//{http://www.loc.gov/mads/v2}namePart[@type='given']").text = researcher_dict['given_name']
     mads_tree.find(".//{http://www.loc.gov/mads/v2}namePart[@type='family']").text = researcher_dict['family_name']
-    mads_tree.find(".//{http://www.loc.gov/mads/v2}identifier[@type='u1']").text = researcher_dict['orcid']
+    mads_tree.find(".//{http://www.loc.gov/mads/v2}identifier[@type='u1']").text = 'http://orcid.org/' + researcher_dict['orcid']
 
     # optional values 
     if researcher_dict['url']:
@@ -219,12 +238,15 @@ def create_mods(response_dict, researcher_dict):
     '''
     Create MODS datastream for work from ORCID.
     '''
+    # get citiations from orcid
+    if researcher_dict['citations']:
+        citation_ids = researcher_dict['citations'].split('/')[-1].split(',')
+    else:
+        citations_ids = []
+
     # set up xsl
     xsl = lxml.etree.parse('app/utils/templates/orcid_to_mods.xsl')
     transform = lxml.etree.XSLT(xsl)
-
-    # get citiations from orcid
-    citation_ids = researcher_dict['citations'].split('/')[-1].split(',')
     
     # colllect work title and mods
     works = []
@@ -333,11 +355,11 @@ def record_response(response_dict, res):
     '''
     response_dict['calls'].append({res.url : res.status_code})
 
-def failure():
+def failure(message):
     '''
     return failure information.
     '''
-    print('{"status_code" : 500, "message" : "islandora api calls failed"}')
+    print('{"status_code" : 500, "message" : message}')
     sys.exit(1)
 
 def main():
