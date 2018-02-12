@@ -156,15 +156,15 @@ def create_mads(session, response_dict, pid, researcher_dict):
 
     # optional values 
     if researcher_dict['url']:
-        mads_tree.find('{http://www.loc.gov/mads/v2}url').text = researcher_dict['url'][0]
+        mads_tree.find('.//{http://www.loc.gov/mads/v2}url').text = researcher_dict['url'][0]
     if researcher_dict['history']:
-        mads_tree.find("{http://www.loc.gov/mads/v2}note[@type='history']").text = researcher_dict['history']
+        mads_tree.find(".//{http://www.loc.gov/mads/v2}note[@type='history']").text = researcher_dict['history']
     if researcher_dict['title']:
-        mads_tree.find('{http://www.loc.gov/mads/v2}title').text = researcher_dict['title']
+        mads_tree.find('.//{http://www.loc.gov/mads/v2}title').text = researcher_dict['title']
     if researcher_dict['organization']:
-        mads_tree.find('{http://www.loc.gov/mads/v2}organization').text = researcher_dict['organization']
+        mads_tree.find('.//{http://www.loc.gov/mads/v2}organization').text = researcher_dict['organization']
     if researcher_dict['position']:
-        mads_tree.find('{http://www.loc.gov/mads/v2}position').text = researcher_dict['position']
+        mads_tree.find('.//{http://www.loc.gov/mads/v2}position').text = researcher_dict['position']
     
     # set up payload and post
 
@@ -172,7 +172,7 @@ def create_mads(session, response_dict, pid, researcher_dict):
         'dsid': 'MADS',
         'controlGroup': 'M',
     }
-    files = {'mads.xml': lxml.etree.tostrin(mads_tree)}
+    files = {'mads.xml': lxml.etree.tostring(mads_tree)}
     res = session.post(API_ENDPOINT + 'object/{}/datastream'.format(pid), data=data, files=files)
     record_response(response_dict, res)
     return({
