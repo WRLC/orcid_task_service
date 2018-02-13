@@ -264,6 +264,9 @@ def create_mods(response_dict, researcher_dict):
         work = {}
         try:
             mods_xml = transform(orcid_xml)
+            mods_xml.find(".//{http://www.loc.gov/mods/v3}namePart[@type='given']").text = researcher_dict['given_name']
+            mods_xml.find(".//{http://www.loc.gov/mods/v3}namePart[@type='family']").text = researcher_dict['family_name']
+            mods_xml.find(".//{http://www.loc.gov/mods/v3}displayForm").text = 'http://orcid.org/' + researcher_dict['orcid']
             work['title'] = mods_xml.find('.//{http://www.loc.gov/mods/v3}title').text
             work['mods'] = lxml.etree.tostring(mods_xml, pretty_print=True)
             works.append(work)
