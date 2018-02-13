@@ -31,6 +31,13 @@ WORK_REL = {
     "type":"uri"
 }
 
+COLLECTION_REL = {
+    "uri":"info:fedora/fedora-system:def/relations-external#",
+    "predicate":"isMemberOfCollection",
+    "object":"auislandora:1684",
+    "type":"uri"
+}
+
 API_ENDPOINT = 'https://auislandora-dev.wrlc.org/islandora/rest/v1/'
 
 ORCID_WORK_ENDPOINT = 'https://pub.orcid.org/v2.0/{}/work/{}'
@@ -396,6 +403,7 @@ def main():
         for work in works_list:
             work_pid = create_object(s, r, work['title'])
             build_rel(s, r, work_pid, WORK_REL) 
+            build_rel(s, r, work_pid, COLLECTION_REL) 
             if work['mods']:
                 post_mods(s, r, work_pid, work['mods'])
                 r['citations_created'].append(work_pid)
