@@ -55,6 +55,11 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0" xmlns:internal="h
 				<title>
 					<xsl:value-of select="common:title"/>
 				</title>
+			<xsl:if test="common:subtitle">
+					<subTitle>
+						<xsl:value-of select="common:subtitle"/>
+					</subTitle>
+			</xsl:if>
 			</titleInfo>
 		</xsl:for-each>
 		<name type="personal">
