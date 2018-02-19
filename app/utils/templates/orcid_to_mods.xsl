@@ -53,11 +53,11 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0" xmlns:internal="h
 		<xsl:for-each select="work:title">
 			<titleInfo>
 				<title>
-					<xsl:value-of select="common:title"/>
+					<xsl:value-of select="(translate(common:title, ':', ''))"/>
 				</title>
 			<xsl:if test="common:subtitle">
 					<subTitle>
-						<xsl:value-of select="common:subtitle"/>
+						<xsl:value-of select="(translate(common:subtitle, ':', ''))"/>
 					</subTitle>
 			</xsl:if>
 			</titleInfo>
