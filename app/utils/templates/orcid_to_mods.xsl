@@ -48,18 +48,37 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0" xmlns:internal="h
             </xsl:when>
 		</xsl:choose>-->
 	</xsl:template>
-	<!--AUTHOR INFORMATION: NAME-->
+	<!--TITLE AND AUTHOR INFORMATION-->
 	<xsl:template name="work:work">
 		<xsl:for-each select="work:title">
 			<titleInfo>
-				<title>
-					<xsl:value-of select="(translate(common:title, ':', ''))"/>
-				</title>
-			<xsl:if test="common:subtitle">
-					<subTitle>
-						<xsl:value-of select="(translate(common:subtitle, ':', ''))"/>
-					</subTitle>
-			</xsl:if>
+				<xsl:choose>
+                    <xsl:when test="common:subtitle">
+						<title>
+							<xsl:value-of select="(translate(common:title, ':', ''))"/>
+						</title>
+						<subTitle>
+							<xsl:value-of select="(translate(common:subtitle, ':', ''))"/>
+						</subTitle>
+					</xsl:when>
+                        <xsl:otherwise>
+							<xsl:choose>
+								<xsl:when test='contains(common:title, ":")'>
+									<title>
+										<xsl:value-of select="substring-before(common:title, ':')"/>
+									</title>
+									<subTitle>
+										<xsl:value-of select="substring-after(common:title, ':')"/>
+									</subTitle>
+								</xsl:when>
+								<xsl:otherwise>
+										<title>
+										<xsl:value-of select="common:title"/>
+										</title>
+								</xsl:otherwise>
+							</xsl:choose>
+						</xsl:otherwise>
+				</xsl:choose>
 			</titleInfo>
 		</xsl:for-each>
 		<name type="personal">
@@ -71,7 +90,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0" xmlns:internal="h
 			<displayForm></displayForm>
 		</name>
 
-		<!--TITLE and ABSTRACT INFORMATION: TITLEINFO and ABSTRACT-->
+		<!--RELATED TITLE and ABSTRACT INFORMATION: TITLEINFO and ABSTRACT-->
 		<relatedItem type="host">
 			<titleInfo>
 				<title>
