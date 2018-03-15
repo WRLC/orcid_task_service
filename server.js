@@ -10,8 +10,10 @@ var express = require('express'),
 
 // set up mongodb
 mongoose.Promise = global.Promise;
-mongoose.connect(config.mongodb, 
-	{ useMongoClient: true });
+mongoose.connect(config.mongodb,
+        { user: config.mongouser,
+          pass: config.mongopass,
+          useMongoClient: true });
 
 // set up body parser
 app.use(bodyParser.urlencoded({ extended: true }));

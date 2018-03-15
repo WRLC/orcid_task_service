@@ -3,23 +3,16 @@
   "version": "1.0.0",
   "description": "RESTful ORCID utilities for WRLC",
   "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "ORCID",
-    "REST"
-  ],
   "author": "Ian Hardy",
-  "license": "MIT",
+  "license": "CC0",
   "dependencies": {
-    "express": "^4.16.2",
-    "mongoose": "^4.12.1",
+    "express": "^4.16.3",
+    "mongoose": "^4.13.12",
     "request": "^2.83.0",
     "request-promise": "^4.2.2"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/ihardy/orcid_task_service.git"
+    "url": "git://github.com/wrlc/orcid_task_service.git"
   }
 }

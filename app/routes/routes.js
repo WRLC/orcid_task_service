@@ -1,10 +1,10 @@
 // app/routes/routes.js
 module.exports = function(app) {
     var apiControllers = require('../controllers/controllers');
-    var islandoraControllers = require('../controllers/islandora');
 
     var express = require('express');
     var router = express.Router();
+    var config = require('../../config');
 
     // middleware TODO, more meaningful logging
     // and error handling
@@ -29,14 +29,17 @@ module.exports = function(app) {
         .delete(apiControllers.delete_researcher);
 
     // islandora tasks
+    
+    if ( typeof config.islandora !== 'undefined' ) {
+        var islandoraControllers = require('../controllers/islandora');
 
-    router.route('/islandora/test')
-    	.put(islandoraControllers.test_islandora);
+        router.route('/islandora/test')
+        	.put(islandoraControllers.test_islandora);
 
-    router.route('/islandora/:orcid')
-        .put(islandoraControllers.islandora_create_or_update);
+        router.route('/islandora/:orcid')
+            .put(islandoraControllers.islandora_create_or_update);
 
-    app.use('/api', router);
+    }
 
+        app.use('/api', router);
 };
-
