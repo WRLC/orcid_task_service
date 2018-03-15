@@ -89,8 +89,9 @@ Copy config.template.js to config.js and adjust the settings to match your envir
 cp config.template.js config.js
 vi config.js
 ```
+Configure the islandora parameters if you would like to use the islandora integration.
 
-### Run with supervisor
+Test by running `nodejs server.js`. If this looks good, It's advisable to use a process manager like pm2 to run your service.
 
 ### Researcher ORCID API
 
