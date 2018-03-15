@@ -4,19 +4,93 @@ This is a demonstartion app to integrate ORCID information with library services
 1. A store of researcher ORCID information exposed via an HTTP API.
 2. Optional integrations to send ORCID data to other apps and services. An islandora integration is implemented in this demo. 
 
-## Installing
+## Setup
+
+These setup instructions have been tested on Ubuntu 14.04 and 16.04. The instructions for installing Node and Mongo can be skipped if you prefer to install them a different way.
 
 ### Requirements
-- Nodejs
-- Mongodb
-- Python3 (for islandora integration)
+- [Nodejs](https://nodejs.org)
+- [Mongodb](https://www.mongodb.com)
+
+### Islandora integration requirements
+- Python3
+
+### Installing
+
+#### Install Nodejs
+Tested using nodejs 8.x, Installing from the nodesource PPA.
+```bash
+wget https://deb.nodesource.com/setup_8.x -O addnodeppa.sh
+sudo bash addnodeppa.sh
+sudo apt-get install nodejs
+nodejs -v
+```
+The output of nodejs -v should be something like `v8.10.0`.
+
+#### Install MongoDB
+Tested using MongoDB 3.6. Installing from the mongodb ppa according to (these instructions)[https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/]
+```bash
+# add gpg key
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5    
+
+# note that this is sensitive to you distro, use xenial instead of trusty for Ubuntu 16.04
+echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list 
+
+sudo apt-get update
+
+sudo apt-get install mongodb-org
+mongo --version
+```
+The output of `mongo --version` should be something like `MongoDB shell version v3.6.3...`
+
+#### Secure MongoDB
+Create a user to administrer accounts
+```bash
+use admin
+
+db.createUser(
+  {
+    user: "adminusername",
+    pwd: "ADMINPASS",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" } ]
+  }
+)
+```
+
+Create a database and user for orcid_task_service
+```bash
+use orcid
+
+db.createUser(
+  {
+    user: "orciduser",
+    pwd: "SOMEPASSWORD",
+    roles: [ { role: "readWrite", db: "orcid" }]
+  }
+)
+```
+
+Also, be sure that you're mongoDB instance is only listening for connections from places you expect to connect from. On recent versions, the default bind address is 127.0.0.1 which is good if you're hosting mongo on the same machine as orcid_task_service. On some older versions of mongoDB the default bind address is `0.0.0.0`, which you probably do not want.
+
+#### Install orcid_task_service
+```bash
+git clone https://github.com/WRLC/orcid_task_service.git
+```
+
+Install node depenancies
+```bash
+cd orcid_task_service
+npm install
+```
 
 ### Configuration
 Copy config.template.js to config.js and adjust the settings to match your environment:
-```
+```bash
 cp config.template.js config.js
 vi config.js
 ```
+
+### Run with supervisor
 
 ### Researcher ORCID API
 
@@ -93,4 +167,4 @@ Example Body:
 }
 ```
 Note that `u1` is the ORCID, and `netid` is an unique id (in this case email).
-Example Body:
+
