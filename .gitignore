@@ -7,3 +7,6 @@ api_settings.py
 
 # cruft
 __pycache__
+
+# IDE files
+.idea
