@@ -169,3 +169,20 @@ Example Body:
 ```
 Note that `u1` is the ORCID, and `netid` is an unique id (in this case email).
 
+## Updating packages
+
+When npm packages require updating, there are two steps to deploying this updates. First, update and install them locally using npm and commit to Git. Then pull updates into production and install them.
+
+### Update package.json locally
+
+1. run `ncu -u` to update package versions in package.json and package-lock.json
+1. run `npm install` to install the updates
+1. commit updates to Git repo and push to Github
+
+### Install updates in production
+
+Because the `node_modules` directory is not committed to the Git repo, updates must be installed in production after pulling in the updated package versions from Github.
+
+1. run `sudo git pull` to pull in the package.json and package-lock.json updates
+1. run `npm install` to install the updated packages
+1. run `sudo systemctl restart orcid` to restart orcid_task_service
