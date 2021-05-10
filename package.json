@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "express": "^4.17.1",
-    "mongoose": "^5.11.8",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.4"
+    "mongoose": "^5.12.7",
+    "request": "^2.88.2",
+    "request-promise": "^4.2.6"
   },
   "repository": {
     "type": "git",
