@@ -175,7 +175,7 @@ When npm packages require updating, there are two steps to deploying this update
 
 ### Update package.json locally
 
-1. run `ncu -u` to update package versions in package.json and package-lock.json
+1. run `npx npm-check-updates -u` to update package versions in package.json and package-lock.json
 1. run `npm install` to install the updates
 1. commit updates to Git repo and push to Github
 
